@@ -132,6 +132,8 @@ char
     sms_sender[15]         ,
     sms_body[50]           ,
     sms_reply_buf[80]      ,
+    mqtt_buf[80]           ,
+    mqtt_topic[24]         ,
     dht_temp               ,
     dht_hum                ,
     interval_data[512]= "0000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000  "
@@ -170,7 +172,14 @@ int
     loop_distance          ,
     loop_width             ,
     dev[4]                 ,
-    current_gap[2]         ;
+    current_gap[2]         ,
+    mqtt_ip1               ,
+    mqtt_ip2               ,
+    mqtt_ip3               ,
+    mqtt_ip4               ,
+    mqtt_port              ,
+    mqtt_en                ,
+    mqtt_publish_flag      ;
 unsigned int
     error_byte=0b0000000000000000
                            ,

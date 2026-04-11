@@ -883,9 +883,63 @@ void process_interface()
                  UART1_Write(10);
                  //send_out("By Ali Jalilvand");
                  send_out("By Ali Jalilvand");
+                 UART1_Write(13);
+                 UART1_Write(10);
+                 send_out("MQTT: ");
+                 inttostr(mqtt_en,tmp7);
+                 UART1_Write_Text(tmp7);
+                 send_out(" ");
+                 inttostr(mqtt_ip1,tmp7);
+                 UART1_Write_Text(tmp7);
+                 send_out(".");
+                 inttostr(mqtt_ip2,tmp7);
+                 UART1_Write_Text(tmp7);
+                 send_out(".");
+                 inttostr(mqtt_ip3,tmp7);
+                 UART1_Write_Text(tmp7);
+                 send_out(".");
+                 inttostr(mqtt_ip4,tmp7);
+                 UART1_Write_Text(tmp7);
+                 send_out(":");
+                 inttostr(mqtt_port,tmp7);
+                 UART1_Write_Text(tmp7);
 
                  break;
 
+         case 35:
+                  // Set MQTT broker IP and port.
+                  // Format: "0035xxx.xxx.xxx.xxx,ppppp"
+                  // (same layout as command 34 for the custom server)
+                  if(uart1_data[0]=='0' && uart1_data[1]=='0' && uart1_data[2]=='3' && uart1_data[3]=='5')
+                  {
+                      mqtt_ip1=(uart1_data[4]-48)*100+(uart1_data[5]-48)*10+(uart1_data[6]-48);
+                      eeprom_write(0x7FFCD8,mqtt_ip1);
+                      delay_ms(5);
+                      mqtt_ip2=(uart1_data[8]-48)*100+(uart1_data[9]-48)*10+(uart1_data[10]-48);
+                      eeprom_write(0x7FFCDC,mqtt_ip2);
+                      delay_ms(5);
+                      mqtt_ip3=(uart1_data[12]-48)*100+(uart1_data[13]-48)*10+(uart1_data[14]-48);
+                      eeprom_write(0x7FFCE0,mqtt_ip3);
+                      delay_ms(5);
+                      mqtt_ip4=(uart1_data[16]-48)*100+(uart1_data[17]-48)*10+(uart1_data[18]-48);
+                      eeprom_write(0x7FFCE4,mqtt_ip4);
+                      delay_ms(5);
+                      mqtt_port=(uart1_data[20]-48)*10000+(uart1_data[21]-48)*1000+(uart1_data[22]-48)*100+(uart1_data[23]-48)*10+(uart1_data[24]-48);
+                      eeprom_write(0x7FFCE8,mqtt_port);
+                      delay_ms(5);
+                      NVMADR=0xFF00;
+                      NVMADRU=0x007F;
+                  }
+                  break;
+         case 36:
+                  // Enable (1) or disable (0) MQTT publishing.
+                  // Format: "00360" to disable, "00361" to enable
+                  mqtt_en = uart1_data[4] - 48;
+                  eeprom_write(0x7FFCEC, mqtt_en);
+                  delay_ms(5);
+                  NVMADR=0xFF00;
+                  NVMADRU=0x007F;
+                  break;
          default : UART1_Write_Text(datetimesec);
      }
       UART1_Write(13); UART1_Write(10); send_out("OK"); UART1_Write(13); UART1_Write(10);

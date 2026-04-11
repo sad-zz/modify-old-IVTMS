@@ -4,6 +4,7 @@
 #include "Variables.h"
 #include "DS1305_Lib.h"
 #include "GPRS.h"
+#include "MQTT_Lib.h"
 #include "DHT11_Lib.h"
 #include "MMC.h"
 #include "Interval.h"
@@ -391,6 +392,15 @@ void main() {
      NVMADR=0xFF00;
      NVMADRU=0x007F;
 
+     // MQTT broker configuration (dsPIC30F4013 extended EEPROM space)
+     mqtt_ip1 = eeprom_read(0x7FFCD8); delay_ms(30);
+     mqtt_ip2 = eeprom_read(0x7FFCDC); delay_ms(30);
+     mqtt_ip3 = eeprom_read(0x7FFCE0); delay_ms(30);
+     mqtt_ip4 = eeprom_read(0x7FFCE4); delay_ms(30);
+     mqtt_port = eeprom_read(0x7FFCE8); delay_ms(30);
+     mqtt_en = eeprom_read(0x7FFCEC); delay_ms(30);
+     mqtt_publish_flag = 0;
+
      timer_1_sec=0;
     }
     dis_int=0;
@@ -531,6 +541,7 @@ void main() {
                     mmc_int_send=1;
                     connection_state=0;
                     gprs_state=0;
+                    mqtt_publish_flag=1;
 
                 }
                 if(current_time.minute==0 && current_time.hour==0)
@@ -755,6 +766,12 @@ void main() {
                       {
                           send_sms_reply(sms_reply_buf);
                           sms_tx_pending = 0;
+                      }
+                      // MQTT publish burst (runs once per interval period)
+                      if(mqtt_publish_flag)
+                      {
+                          mqtt_publish_flag = 0;
+                          mqtt_publish_burst();
                       }
                       //send_atc(gsm_cipshut);
                       set_gprs_timer(0);
