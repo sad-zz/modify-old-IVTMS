@@ -199,9 +199,9 @@ void mqtt_publish_burst()
     // Require a valid (non-zero) broker IP
     if(mqtt_ip1 == 0 && mqtt_ip2 == 0 && mqtt_ip3 == 0 && mqtt_ip4 == 0) return;
 
-    // Build client ID: "IVTMS" + system_id
+    // Build client ID: "IVTMS" + system_id (up to 13 chars)
     cid[0] = 'I'; cid[1] = 'V'; cid[2] = 'T'; cid[3] = 'M'; cid[4] = 'S';
-    for(t = 0; t < 8 && system_id[t]; t++) cid[5 + t] = system_id[t];
+    for(t = 0; t < 13 && system_id[t]; t++) cid[5 + t] = system_id[t];
     cid[5 + t] = 0;
 
     // -----------------------------------------------------------------
@@ -380,14 +380,16 @@ void mqtt_publish_burst()
             if((unsigned char)uart2_data[ci] == (unsigned char)MQTT_CTRL_PUBLISH)
             {
                 // Remaining length at [ci+1], topic length at [ci+2..ci+3]
-                short t_len  = ((unsigned char)uart2_data[ci + 2] << 8) |
-                                (unsigned char)uart2_data[ci + 3];
-                short pay_start = ci + 2 + 2 + t_len;
                 short rem_len   = (unsigned char)uart2_data[ci + 1];
+                short t_len     = ((unsigned char)uart2_data[ci + 2] << 8) |
+                                   (unsigned char)uart2_data[ci + 3];
+                short pay_start = ci + 2 + 2 + t_len;
                 short pay_len   = rem_len - 2 - t_len;
                 short k;
 
-                if(pay_len > 0 && pay_start + pay_len <= uart2_data_pointer)
+                // Validate bounds before accessing payload
+                if(t_len >= 0 && pay_len > 0 &&
+                   pay_start >= 0 && pay_start + pay_len <= uart2_data_pointer)
                 {
                     for(k = 0; k < pay_len && k < 49; k++)
                         sms_body[k] = uart2_data[pay_start + k];

@@ -910,25 +910,25 @@ void process_interface()
                   // Set MQTT broker IP and port.
                   // Format: "0035xxx.xxx.xxx.xxx,ppppp"
                   // (same layout as command 34 for the custom server)
-                  if(uart1_data[0]=='0' && uart1_data[1]=='0' && uart1_data[2]=='3' && uart1_data[3]=='5')
                   {
-                      mqtt_ip1=(uart1_data[4]-48)*100+(uart1_data[5]-48)*10+(uart1_data[6]-48);
-                      eeprom_write(0x7FFCD8,mqtt_ip1);
-                      delay_ms(5);
-                      mqtt_ip2=(uart1_data[8]-48)*100+(uart1_data[9]-48)*10+(uart1_data[10]-48);
-                      eeprom_write(0x7FFCDC,mqtt_ip2);
-                      delay_ms(5);
-                      mqtt_ip3=(uart1_data[12]-48)*100+(uart1_data[13]-48)*10+(uart1_data[14]-48);
-                      eeprom_write(0x7FFCE0,mqtt_ip3);
-                      delay_ms(5);
-                      mqtt_ip4=(uart1_data[16]-48)*100+(uart1_data[17]-48)*10+(uart1_data[18]-48);
-                      eeprom_write(0x7FFCE4,mqtt_ip4);
-                      delay_ms(5);
-                      mqtt_port=(uart1_data[20]-48)*10000+(uart1_data[21]-48)*1000+(uart1_data[22]-48)*100+(uart1_data[23]-48)*10+(uart1_data[24]-48);
-                      eeprom_write(0x7FFCE8,mqtt_port);
-                      delay_ms(5);
-                      NVMADR=0xFF00;
-                      NVMADRU=0x007F;
+                      int v1,v2,v3,v4,vp;
+                      v1=(uart1_data[4]-48)*100+(uart1_data[5]-48)*10+(uart1_data[6]-48);
+                      v2=(uart1_data[8]-48)*100+(uart1_data[9]-48)*10+(uart1_data[10]-48);
+                      v3=(uart1_data[12]-48)*100+(uart1_data[13]-48)*10+(uart1_data[14]-48);
+                      v4=(uart1_data[16]-48)*100+(uart1_data[17]-48)*10+(uart1_data[18]-48);
+                      vp=(uart1_data[20]-48)*10000+(uart1_data[21]-48)*1000+(uart1_data[22]-48)*100+(uart1_data[23]-48)*10+(uart1_data[24]-48);
+                      if(v1>=0 && v1<=255 && v2>=0 && v2<=255 &&
+                         v3>=0 && v3<=255 && v4>=0 && v4<=255 &&
+                         vp>0 && vp<=65535)
+                      {
+                          mqtt_ip1=v1; eeprom_write(0x7FFCD8,mqtt_ip1); delay_ms(5);
+                          mqtt_ip2=v2; eeprom_write(0x7FFCDC,mqtt_ip2); delay_ms(5);
+                          mqtt_ip3=v3; eeprom_write(0x7FFCE0,mqtt_ip3); delay_ms(5);
+                          mqtt_ip4=v4; eeprom_write(0x7FFCE4,mqtt_ip4); delay_ms(5);
+                          mqtt_port=vp; eeprom_write(0x7FFCE8,mqtt_port); delay_ms(5);
+                          NVMADR=0xFF00;
+                          NVMADRU=0x007F;
+                      }
                   }
                   break;
          case 36:

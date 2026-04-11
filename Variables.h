@@ -132,7 +132,7 @@ char
     sms_sender[15]         ,
     sms_body[50]           ,
     sms_reply_buf[80]      ,
-    mqtt_buf[80]           ,
+    mqtt_buf[96]           ,
     mqtt_topic[24]         ,
     dht_temp               ,
     dht_hum                ,
