@@ -52,26 +52,71 @@ void UART1INT() iv IVT_ADDR_U1RXINTERRUPT
 
 void UART2INT() iv IVT_ADDR_U2RXINTERRUPT
 {
+     short pi, pj;
      while(U2STAbits.URXDA)
      {
          udata2=UART2_Read();
          if(debug_gsm) UART1_Write(udata2);
          if(!dis_int)
          {
-             if(udata2!=10)
+             if(udata2 == 10)
              {
-                if(udata2!=13)
-                {
-                    uart2_data[uart2_data_pointer]=udata2;
-                    uart2_data_pointer++;
-                    if(udata2=='>') sending_ready=1;
-                }
-                else if(uart2_data_pointer>0)
-                {
-                    uart2_data_received=1;
-                }
+                 // LF: always ignore
              }
-             if(uart2_data_pointer==47) uart2_data_pointer=0;
+             else if(udata2 == 13)
+             {
+                 // CR: end of line - decide what to do based on current state
+                 if(sms_waiting_body)
+                 {
+                     // This CR ends the SMS body line
+                     sms_body[sms_body_ptr] = 0;
+                     if(sms_body_ptr >= 4) sms_cmd_received = 1;
+                     sms_waiting_body = 0;
+                     sms_body_ptr = 0;
+                 }
+                 else if(uart2_data_pointer > 4 &&
+                         uart2_data[0]=='+' && uart2_data[1]=='C' &&
+                         uart2_data[2]=='M' && uart2_data[3]=='T' &&
+                         uart2_data[4]==':')
+                 {
+                     // +CMT: notification received - extract sender number
+                     // Format: +CMT: "NUMBER","","DATE"
+                     pi = 0;
+                     while(pi < uart2_data_pointer && uart2_data[pi] != '"') pi++;
+                     pi++;   // skip opening quote
+                     pj = 0;
+                     while(pi < uart2_data_pointer && uart2_data[pi] != '"' && pj < 14)
+                     {
+                         sms_sender[pj++] = uart2_data[pi++];
+                     }
+                     sms_sender[pj] = 0;
+                     sms_body_ptr = 0;
+                     sms_waiting_body = 1;
+                     uart2_data_pointer = 0;  // Clear GPRS buffer; SMS body uses sms_body[]
+                 }
+                 else if(uart2_data_pointer > 0)
+                 {
+                     uart2_data_received = 1;
+                 }
+             }
+             else
+             {
+                 // Regular character: route to SMS body or GPRS buffer
+                 if(sms_waiting_body)
+                 {
+                     if(sms_body_ptr < 49)
+                     {
+                         sms_body[sms_body_ptr++] = udata2;
+                     }
+                 }
+                 else
+                 {
+                     uart2_data[uart2_data_pointer] = udata2;
+                     uart2_data_pointer++;
+                     if(udata2 == '>') sending_ready = 1;
+                     if(uart2_data_pointer == 47) uart2_data_pointer = 0;
+                 }
+             }
          }
      }
      U2RXIF_bit=0;
@@ -104,6 +149,116 @@ void margin_write()
      NVMADR=0xFF00;
      NVMADRU=0x007F;
 }
+
+// -----------------------------------------------------------------------
+// SMS helper: append a string to sms_reply_buf (max 79 chars)
+void sms_buf_append(char *s)
+{
+    short i = strlen(sms_reply_buf);
+    while(*s && i < 79)
+    {
+        sms_reply_buf[i++] = *s++;
+    }
+    sms_reply_buf[i] = 0;
+}
+
+// SMS helper: compare last 10 digits of sender with last 10 digits of sms_number_1
+// Handles both local (09xxx) and international (+989xxx) formats
+short sms_sender_match()
+{
+    short sl, nl, j;
+    sl = strlen(sms_sender);
+    nl = strlen(sms_number_1);
+    if(sl < 10 || nl < 10) return 0;
+    for(j = 0; j < 10; j++)
+    {
+        if(sms_sender[sl - 10 + j] != sms_number_1[nl - 10 + j]) return 0;
+    }
+    return 1;
+}
+
+// Process a command received via SMS.
+// sms_body[] contains the raw command text (same format as USB: "CCCCparam...").
+// Authorised commands are executed and sms_reply_buf is filled with a reply.
+// sms_tx_pending is set so the reply is sent when UART2 is idle.
+void process_sms_cmd()
+{
+    short fc, j;
+
+    // Copy sms_body into uart1_data so process_interface() can read parameters
+    for(j = 0; j < 48 && sms_body[j]; j++)
+    {
+        uart1_data[j] = sms_body[j];
+    }
+    uart1_data[j] = 0;
+    uart1_data_pointer = j;
+
+    // Decode 4-digit command code (same logic as main loop)
+    fc = (int)(uart1_data[3] - 48) +
+         (int)(uart1_data[2] - 48) * 10 +
+         (int)(uart1_data[1] - 48) * 100 +
+         (int)(uart1_data[0] - 48) * 1000;
+    function_code = fc;
+
+    // Build reply header
+    sms_reply_buf[0] = 0;
+    if(fc == 0)
+    {
+        // Status query: reply with ID, time, error code, and sensor data
+        sms_buf_append(system_id);
+        sms_buf_append(",");
+        sms_buf_append(datetimesec);
+        sms_buf_append(",E:");
+        inttostr(error_byte, tmp7);
+        sms_buf_append(tmp7);
+        if(dht_valid)
+        {
+            sms_buf_append(",T:");
+            bytetostr((unsigned short)dht_temp, tmp7);
+            sms_buf_append(tmp7);
+            sms_buf_append(",H:");
+            bytetostr((unsigned short)dht_hum, tmp7);
+            sms_buf_append(tmp7);
+            sms_buf_append("%");
+        }
+    }
+    else if(fc == 88)
+    {
+        // Settings summary
+        short rl;
+        sms_buf_append("L:");
+        rl = strlen(sms_reply_buf);
+        if(rl < 78) { sms_reply_buf[rl] = loop[0] + '0'; sms_reply_buf[rl+1] = 0; }
+        rl = strlen(sms_reply_buf);
+        if(rl < 78) { sms_reply_buf[rl] = loop[1] + '0'; sms_reply_buf[rl+1] = 0; }
+        rl = strlen(sms_reply_buf);
+        if(rl < 78) { sms_reply_buf[rl] = loop[2] + '0'; sms_reply_buf[rl+1] = 0; }
+        rl = strlen(sms_reply_buf);
+        if(rl < 78) { sms_reply_buf[rl] = loop[3] + '0'; sms_reply_buf[rl+1] = 0; }
+        sms_buf_append(",APN:");
+        inttostr(apndata, tmp7);
+        sms_buf_append(tmp7);
+        sms_buf_append(",IP:");
+        inttostr(ip1, tmp7); sms_buf_append(tmp7); sms_buf_append(".");
+        inttostr(ip2, tmp7); sms_buf_append(tmp7); sms_buf_append(".");
+        inttostr(ip3, tmp7); sms_buf_append(tmp7); sms_buf_append(".");
+        inttostr(ip4, tmp7); sms_buf_append(tmp7);
+        sms_buf_append(":");
+        inttostr(port, tmp7); sms_buf_append(tmp7);
+    }
+    else
+    {
+        // Configuration command: apply it (process_interface uses uart1_data)
+        process_interface();
+        // Simple confirmation reply
+        sms_buf_append("OK:");
+        inttostr(fc, tmp7);
+        sms_buf_append(tmp7);
+    }
+
+    sms_tx_pending = 1;
+}
+
 void process_interface()
 {
      //extern int LIME;

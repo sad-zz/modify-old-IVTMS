@@ -4,6 +4,7 @@
 #include "Variables.h"
 #include "DS1305_Lib.h"
 #include "GPRS.h"
+#include "DHT11_Lib.h"
 #include "MMC.h"
 #include "Interval.h"
 #include "Capture_Int_Lib.h"
@@ -228,6 +229,14 @@ void main() {
     IPC6=0x0003;
     debug=0;
     send_sms=0;
+    sms_waiting_body=0;
+    sms_cmd_received=0;
+    sms_tx_pending=0;
+    sms_body_ptr=0;
+    dht_read_timer=0;
+    dht_valid=0;
+    dht_temp=0;
+    dht_hum=0;
     delay_ms(100);
      MARGINTOP=eeprom_read(0x7FFC00);
      delay_ms(30);
@@ -464,12 +473,28 @@ void main() {
             process_interface();
             clear_uart1();
          }
+         // Process SMS commands received from the authorised number
+         if(sms_cmd_received)
+         {
+            sms_cmd_received = 0;
+            if(sms_sender_match())
+            {
+                process_sms_cmd();
+            }
+         }
          if(timer_1_sec==1)
          {
             rtc_read();
             status=!status;
             Clrwdt();
             if(sim_reset_timer>0) sim_reset_timer=sim_reset_timer-1;
+            // Read DHT11 sensor every 30 seconds
+            dht_read_timer++;
+            if(dht_read_timer >= 30)
+            {
+                dht_read_timer = 0;
+                dht11_read();
+            }
             for(tmpcnt=0;tmpcnt<4;tmpcnt++)
             {
                 cal_timer[tmpcnt]++;
@@ -690,6 +715,24 @@ void main() {
                  }
                  else if(sim_reset_step==10)
                  {
+                     sim_reset_timer=2;
+                     sim_reset_step=11;
+
+                     // Enable SMS text mode
+                     send_atc("AT+CMGF=1");
+                     UART2_Write(13);
+                 }
+                 else if(sim_reset_step==11)
+                 {
+                     sim_reset_timer=2;
+                     sim_reset_step=12;
+
+                     // Deliver new SMS directly via +CMT: URC (unsolicited result code)
+                     send_atc("AT+CNMI=2,2,0,0,0");
+                     UART2_Write(13);
+                 }
+                 else if(sim_reset_step==12)
+                 {
                      clear_uart2();
                      connection_state=0;
                      gprs_state=0;
@@ -707,6 +750,12 @@ void main() {
                   //
                   if(gprs_state==0)     // CIPSHUT
                   {
+                      // Send pending SMS reply before starting GPRS reconnect
+                      if(sms_tx_pending)
+                      {
+                          send_sms_reply(sms_reply_buf);
+                          sms_tx_pending = 0;
+                      }
                       //send_atc(gsm_cipshut);
                       set_gprs_timer(0);
                       clear_uart2();
