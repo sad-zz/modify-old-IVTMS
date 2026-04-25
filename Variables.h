@@ -81,7 +81,13 @@ short
     gprs_timer_en          ,
     uart1_data_received    ,
     last_temp1=0           ,
-    rtc_read_cnt           ;
+    rtc_read_cnt           ,
+    sms_waiting_body       ,
+    sms_cmd_received       ,
+    sms_tx_pending         ,
+    sms_body_ptr           ,
+    dht_read_timer         ,
+    dht_valid              ;
 unsigned short
     cal_timer[4]           ,
 
@@ -123,7 +129,14 @@ char
                            ,
     sms_number_1[12]="09123701598"
                            ,
-    interval_data[512] = "0000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000  "
+    sms_sender[15]         ,
+    sms_body[50]           ,
+    sms_reply_buf[80]      ,
+    mqtt_buf[96]           ,
+    mqtt_topic[24]         ,
+    dht_temp               ,
+    dht_hum                ,
+    interval_data[512]= "0000000100000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000  "
                            ;
 int
     function_code          ,
@@ -159,7 +172,14 @@ int
     loop_distance          ,
     loop_width             ,
     dev[4]                 ,
-    current_gap[2]         ;
+    current_gap[2]         ,
+    mqtt_ip1               ,
+    mqtt_ip2               ,
+    mqtt_ip3               ,
+    mqtt_ip4               ,
+    mqtt_port              ,
+    mqtt_en                ,
+    mqtt_publish_flag      ;
 unsigned int
     error_byte=0b0000000000000000
                            ,

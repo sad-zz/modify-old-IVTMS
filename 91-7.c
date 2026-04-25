@@ -4,6 +4,8 @@
 #include "Variables.h"
 #include "DS1305_Lib.h"
 #include "GPRS.h"
+#include "MQTT_Lib.h"
+#include "DHT11_Lib.h"
 #include "MMC.h"
 #include "Interval.h"
 #include "Capture_Int_Lib.h"
@@ -228,6 +230,14 @@ void main() {
     IPC6=0x0003;
     debug=0;
     send_sms=0;
+    sms_waiting_body=0;
+    sms_cmd_received=0;
+    sms_tx_pending=0;
+    sms_body_ptr=0;
+    dht_read_timer=0;
+    dht_valid=0;
+    dht_temp=0;
+    dht_hum=0;
     delay_ms(100);
      MARGINTOP=eeprom_read(0x7FFC00);
      delay_ms(30);
@@ -382,6 +392,15 @@ void main() {
      NVMADR=0xFF00;
      NVMADRU=0x007F;
 
+     // MQTT broker configuration (dsPIC30F4013 extended EEPROM space)
+     mqtt_ip1 = eeprom_read(0x7FFCD8); delay_ms(30);
+     mqtt_ip2 = eeprom_read(0x7FFCDC); delay_ms(30);
+     mqtt_ip3 = eeprom_read(0x7FFCE0); delay_ms(30);
+     mqtt_ip4 = eeprom_read(0x7FFCE4); delay_ms(30);
+     mqtt_port = eeprom_read(0x7FFCE8); delay_ms(30);
+     mqtt_en = eeprom_read(0x7FFCEC); delay_ms(30);
+     mqtt_publish_flag = 0;
+
      timer_1_sec=0;
     }
     dis_int=0;
@@ -464,12 +483,28 @@ void main() {
             process_interface();
             clear_uart1();
          }
+         // Process SMS commands received from the authorised number
+         if(sms_cmd_received)
+         {
+            sms_cmd_received = 0;
+            if(sms_sender_match())
+            {
+                process_sms_cmd();
+            }
+         }
          if(timer_1_sec==1)
          {
             rtc_read();
             status=!status;
             Clrwdt();
             if(sim_reset_timer>0) sim_reset_timer=sim_reset_timer-1;
+            // Read DHT11 sensor every 30 seconds
+            dht_read_timer++;
+            if(dht_read_timer >= 30)
+            {
+                dht_read_timer = 0;
+                dht11_read();
+            }
             for(tmpcnt=0;tmpcnt<4;tmpcnt++)
             {
                 cal_timer[tmpcnt]++;
@@ -506,6 +541,7 @@ void main() {
                     mmc_int_send=1;
                     connection_state=0;
                     gprs_state=0;
+                    mqtt_publish_flag=1;
 
                 }
                 if(current_time.minute==0 && current_time.hour==0)
@@ -690,6 +726,24 @@ void main() {
                  }
                  else if(sim_reset_step==10)
                  {
+                     sim_reset_timer=2;
+                     sim_reset_step=11;
+
+                     // Enable SMS text mode
+                     send_atc("AT+CMGF=1");
+                     UART2_Write(13);
+                 }
+                 else if(sim_reset_step==11)
+                 {
+                     sim_reset_timer=2;
+                     sim_reset_step=12;
+
+                     // Deliver new SMS directly via +CMT: URC (unsolicited result code)
+                     send_atc("AT+CNMI=2,2,0,0,0");
+                     UART2_Write(13);
+                 }
+                 else if(sim_reset_step==12)
+                 {
                      clear_uart2();
                      connection_state=0;
                      gprs_state=0;
@@ -707,6 +761,18 @@ void main() {
                   //
                   if(gprs_state==0)     // CIPSHUT
                   {
+                      // Send pending SMS reply before starting GPRS reconnect
+                      if(sms_tx_pending)
+                      {
+                          send_sms_reply(sms_reply_buf);
+                          sms_tx_pending = 0;
+                      }
+                      // MQTT publish burst (runs once per interval period)
+                      if(mqtt_publish_flag)
+                      {
+                          mqtt_publish_flag = 0;
+                          mqtt_publish_burst();
+                      }
                       //send_atc(gsm_cipshut);
                       set_gprs_timer(0);
                       clear_uart2();
