@@ -108,13 +108,15 @@ short mqtt_build_connect(const char *client_id, unsigned short keepalive)
 
 // Build MQTT PUBLISH (QoS 0) packet into mqtt_buf[].
 // topic and payload are null-terminated strings.
-// Returns total packet length.
+// Returns total packet length, or 0 if the packet would exceed mqtt_buf[].
 short mqtt_build_publish(const char *topic, const char *payload)
 {
     short t_len, p_len, rem_len, i, p;
     t_len   = strlen(topic);
     p_len   = strlen(payload);
     rem_len = 2 + t_len + p_len;  // topic-len field (2) + topic + payload
+    // Guard: 2-byte fixed header + rem_len must fit in mqtt_buf[]
+    if (2 + rem_len > 95) return 0;
 
     p = 0;
     mqtt_buf[p++] = (char)MQTT_CTRL_PUBLISH;
@@ -129,12 +131,14 @@ short mqtt_build_publish(const char *topic, const char *payload)
 
 // Build MQTT SUBSCRIBE packet into mqtt_buf[] (single topic, QoS 0).
 // packet_id: nonzero unsigned short.
-// Returns total packet length.
+// Returns total packet length, or 0 if the packet would exceed mqtt_buf[].
 short mqtt_build_subscribe(const char *topic, unsigned short packet_id)
 {
     short t_len, rem_len, i, p;
     t_len   = strlen(topic);
     rem_len = 2 + 2 + t_len + 1;  // pkt-id (2) + topic-len (2) + topic + QoS (1)
+    // Guard: 2-byte fixed header + rem_len must fit in mqtt_buf[]
+    if (2 + rem_len > 95) return 0;
 
     p = 0;
     mqtt_buf[p++] = (char)MQTT_CTRL_SUBSCRIBE;
@@ -345,9 +349,10 @@ void mqtt_publish_burst()
         Clrwdt();
     }
 
-    // -----------------------------------------------------------------
-    // Step 10: PUBLISH battery voltage (converted to 0.1 V units)
-    // -----------------------------------------------------------------
+    // Step 10: PUBLISH battery voltage.
+    // ADC raw value (0-1023) is scaled by the board's voltage divider:
+    //   Vbat (0.1 V units) = vbat * 0.388509 + 7
+    // (Divider: R_top / (R_top + R_bot) ≈ 0.388509; +7 offset for diode drop)
     mqtt_build_topic("vbat");
     longtostr((long)(vbat * 0.388509 + 7), payload);
     pkt_len = mqtt_build_publish(mqtt_topic, payload);
