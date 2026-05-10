@@ -1,0 +1,12 @@
+{
+  "meta": {"filename": "board.kicad_pro", "version": 3},
+  "net_settings": {
+    "classes": [
+      {"name": "Default", "clearance": 0.2, "track_width": 0.25, "via_diameter": 0.6, "via_drill": 0.3},
+      {"name": "Power", "clearance": 0.3, "track_width": 0.5, "via_diameter": 0.8, "via_drill": 0.4},
+      {"name": "RF", "clearance": 0.25, "track_width": 0.4, "via_diameter": 0.8, "via_drill": 0.4}
+    ]
+  },
+  "sheets": [["a0000000-0000-4000-8000-000000000030", "Root"]],
+  "text_variables": {"BOARD": "MCU-B", "REV": "1.0"}
+}

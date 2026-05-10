@@ -1,0 +1,31 @@
+Reference,Value,Footprint,Manufacturer,MPN,Qty,Notes
+U1,dsPIC30F4011-30I/PT,Package_QFP:TQFP-44_10x10mm_P0.8mm,Microchip,dsPIC30F4011-30I/PT,1,Main MCU
+U2,MP1584EN,Package_SO:SOIC-8_3.9x4.9mm_P1.27mm,MPS,MP1584EN,1,Buck 12V to 4V
+U3,DS1305,Package_SO:SOIC-16_3.9x9.9mm_P1.27mm,Maxim,DS1305+,1,SPI RTC
+U4,SIM900A,Module:SIM900,SIMCom,SIM900A,1,2G GSM module (or SIM800C)
+U5,AMS1117-3.3,Package_TO_SOT_SMD:SOT-223-3_TabPin2,AMS,AMS1117-3.3,1,Optional 3V3 LDO for SD
+U6,SN74LVC1T45DBVR,Package_TO_SOT_SMD:SOT-23-6,TI,SN74LVC1T45DBVR,2,Bidirectional level shift TX/RX
+Y1,16MHz,Crystal:Crystal_SMD_HC49-SD,Abracon,ABLS-16.000MHz-B4-T,1,Main crystal
+Y2,32.768kHz,Crystal:Crystal_SMD_3215-2Pin_3.2x1.5mm,Abracon,ABS06-32.768kHz,1,RTC crystal
+BT1,CR2032 holder,Battery:BatteryHolder_Keystone_3000_1x12mm,Keystone,3000,1,RTC backup
+J_BUS,Header 2x8,Connector_PinHeader_2.54mm:PinHeader_2x08_P2.54mm_Vertical,Wurth,61201621621,1,Backplane bus
+J_ICSP,Header 1x5,Connector_PinHeader_2.54mm:PinHeader_1x05_P2.54mm_Vertical,Wurth,61300511121,1,ICSP
+J_SIM,SIM card holder,Connector_Card:Hirose_DM1AA-SF-PEJ-MA82,Hirose,DM1AA-SF-PEJ,1,Push-push SIM
+J_SD,microSD socket,Connector_Card:microSD_HC_Hirose_DM3BT-DSF-PEJS,Hirose,DM3BT-DSF-PEJS,1,Card holder
+J_ANT,U.FL,Connector_Coaxial:U.FL_Hirose_U.FL-R-SMT-1_Vertical,Hirose,U.FL-R-SMT-1,1,Antenna
+C_DSPIC_BYP1,100nF,Capacitor_SMD:C_0805_2012Metric,Murata,GRM21,4,dsPIC VDD bypass
+C_DSPIC_BYP2,10uF,Capacitor_SMD:C_0805_2012Metric,Murata,GRM21,1,5V bulk near MCU
+C_RF_BULK,470uF/16V,Capacitor_SMD:CP_Elec_8x10.5,Panasonic,EEEFK1C471P,1,Modem Vbat bulk
+C_RF_BYP,100nF,Capacitor_SMD:C_0805_2012Metric,Murata,GRM21,2,Modem Vbat bypass
+C_BUCK_IN,22uF/25V,Capacitor_SMD:C_1210_3225Metric,Murata,GRM32,1,Buck input
+C_BUCK_OUT,22uF/16V,Capacitor_SMD:C_1210_3225Metric,Murata,GRM32,1,Buck output
+L_BUCK,10uH/3A,Inductor_SMD:L_Bourns_SRR1280,Bourns,SRR1280-100M,1,Buck inductor
+D_BUCK,SS34,Diode_SMD:D_SMA,Onsemi,SS34,1,Buck freewheel
+R_PWRKEY_PU,10K,Resistor_SMD:R_0805_2012Metric,Yageo,RC0805,1,PWRKEY pull-up
+R_STATUS_PU,10K,Resistor_SMD:R_0805_2012Metric,Yageo,RC0805,1,STATUS pull-up
+R_LVL,10K,Resistor_SMD:R_0805_2012Metric,Yageo,RC0805,4,Level shifter
+LED_PWR,Green,LED_SMD:LED_0805_2012Metric,Wurth,150080GS75000,1,Power LED
+LED_NET,Yellow,LED_SMD:LED_0805_2012Metric,Wurth,150080YS75000,1,Net status from SIM900
+R_LED,1K,Resistor_SMD:R_0805_2012Metric,Yageo,RC0805,2,LED series
+SW_RESET,Tactile 6mm,Button_Switch_SMD:SW_SPST_TL3305,E-Switch,TL3305AF160QJ,1,Reset
+TVS_SIM,SP0503,Package_TO_SOT_SMD:SOT-23,Littelfuse,SP0503BAHTG,1,SIM ESD protection

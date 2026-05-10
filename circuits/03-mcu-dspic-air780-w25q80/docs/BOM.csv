@@ -1,0 +1,32 @@
+Reference,Value,Footprint,Manufacturer,MPN,Qty,Notes
+U1,dsPIC30F4011-30I/PT,Package_QFP:TQFP-44_10x10mm_P0.8mm,Microchip,dsPIC30F4011-30I/PT,1,Main MCU
+U2,MP1584EN,Package_SO:SOIC-8_3.9x4.9mm_P1.27mm,MPS,MP1584EN,1,Buck 12V to 3.8V for AIR780E
+U3,DS1305,Package_SO:SOIC-16_3.9x9.9mm_P1.27mm,Maxim,DS1305+,1,SPI RTC
+U4,W25Q80DV,Package_SO:SOIC-8_3.9x4.9mm_P1.27mm,Winbond,W25Q80DVSSIG,1,1MB SPI NOR flash
+U5,74LVC125,Package_SO:SOIC-14_3.9x8.7mm_P1.27mm,TI,SN74LVC125AD,1,SPI level shifter (4-bit unidirectional)
+U6,TXS0108E,Package_SO:TSSOP-20_4.4x6.5mm_P0.65mm,TI,TXS0108EPWR,1,UART level shift (or 4x SN74LVC1T45)
+U7,AMS1117-3.3,Package_TO_SOT_SMD:SOT-223-3_TabPin2,AMS,AMS1117-3.3,1,3V3 LDO for flash/level
+U8,AIR780E,Module:AIR780E_LCC,Air,AIR780E,1,LTE Cat.1bis module
+Y1,16MHz,Crystal:Crystal_SMD_HC49-SD,Abracon,ABLS-16.000MHz-B4-T,1,Main crystal
+Y2,32.768kHz,Crystal:Crystal_SMD_3215-2Pin_3.2x1.5mm,Abracon,ABS06-32.768kHz,1,RTC crystal
+BT1,CR2032 holder,Battery:BatteryHolder_Keystone_3000_1x12mm,Keystone,3000,1,RTC backup
+J_BUS,Header 2x8,Connector_PinHeader_2.54mm:PinHeader_2x08_P2.54mm_Vertical,Wurth,61201621621,1,Backplane bus
+J_ICSP,Header 1x5,Connector_PinHeader_2.54mm:PinHeader_1x05_P2.54mm_Vertical,Wurth,61300511121,1,ICSP
+J_SIM,SIM card holder,Connector_Card:Hirose_DM1AA-SF-PEJ-MA82,Hirose,DM1AA-SF-PEJ,1,Push-push SIM
+J_ANT,U.FL,Connector_Coaxial:U.FL_Hirose_U.FL-R-SMT-1_Vertical,Hirose,U.FL-R-SMT-1,1,Antenna main
+C_DSPIC_BYP,100nF,Capacitor_SMD:C_0805_2012Metric,Murata,GRM21,5,dsPIC VDD/AVDD bypass + DS1305 + W25Q80
+C_BULK_5V,10uF,Capacitor_SMD:C_0805_2012Metric,Murata,GRM21,1,5V near MCU
+C_BULK_3V3,10uF,Capacitor_SMD:C_0805_2012Metric,Murata,GRM21,2,3V3 LDO out + AIR780 IO side
+C_RF_BULK,470uF/16V,Capacitor_SMD:CP_Elec_8x10.5,Panasonic,EEEFK1C471P,1,AIR780E Vbat bulk
+C_RF_BYP,100nF,Capacitor_SMD:C_0805_2012Metric,Murata,GRM21,4,AIR780E Vbat bypass (×4)
+C_BUCK_IN,22uF/25V,Capacitor_SMD:C_1210_3225Metric,Murata,GRM32,1,Buck input
+C_BUCK_OUT,22uF/16V,Capacitor_SMD:C_1210_3225Metric,Murata,GRM32,1,Buck output
+L_BUCK,10uH/3A,Inductor_SMD:L_Bourns_SRR1280,Bourns,SRR1280-100M,1,Buck inductor
+D_BUCK,SS34,Diode_SMD:D_SMA,Onsemi,SS34,1,Buck freewheel
+R_PU_10K,10K,Resistor_SMD:R_0805_2012Metric,Yageo,RC0805,5,Pull-ups for PWRKEY/STATUS/RESET
+R_LED,1K,Resistor_SMD:R_0805_2012Metric,Yageo,RC0805,2,LED series
+LED_PWR,Green,LED_SMD:LED_0805_2012Metric,Wurth,150080GS75000,1,Power LED
+LED_NET,Yellow,LED_SMD:LED_0805_2012Metric,Wurth,150080YS75000,1,4G net status
+SW_RESET,Tactile 6mm,Button_Switch_SMD:SW_SPST_TL3305,E-Switch,TL3305AF160QJ,1,Reset
+TVS_SIM,SP0503,Package_TO_SOT_SMD:SOT-23,Littelfuse,SP0503BAHTG,1,SIM ESD
+TVS_12V,SMAJ24CA,Diode_SMD:D_SMA,Littelfuse,SMAJ24CA,1,Input bus protection

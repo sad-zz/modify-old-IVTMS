@@ -1,0 +1,23 @@
+(kicad_sch
+	(version 20250114)
+	(generator "eeschema")
+	(generator_version "9.0")
+	(uuid "a0000000-0000-4000-8000-000000000040")
+	(paper "A3")
+	(title_block
+		(title "MCU-C — STM32F103C8 + AIR780E + W25Q80")
+		(date "2026-05-10")
+		(rev "1.0")
+		(company "IVTMS")
+		(comment 1 "Pin assignments match stm32-firmware/Core/Src/main.c")
+		(comment 2 "3.3V LDO + 3.8V buck for AIR780E + USB-C optional")
+		(comment 3 "Source-of-truth: docs/NETLIST.md")
+	)
+	(lib_symbols)
+	(sheet_instances
+		(path "/"
+			(page "1")
+		)
+	)
+	(embedded_fonts no)
+)

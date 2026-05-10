@@ -1,0 +1,24 @@
+(kicad_sch
+	(version 20250114)
+	(generator "eeschema")
+	(generator_version "9.0")
+	(uuid "a0000000-0000-4000-8000-000000000010")
+	(paper "A3")
+	(title_block
+		(title "LOOP Detector — IVTMS (4-channel)")
+		(date "2026-05-10")
+		(rev "1.0")
+		(company "IVTMS")
+		(comment 1 "Reverse from main loop pcb3.SchDoc — same topology")
+		(comment 2 "4× channel: 2N7000 protect / LM339 / 2SJ196(BSS92)")
+		(comment 3 "2× HCF4051 8:1 analog mux")
+		(comment 4 "Source-of-truth: docs/NETLIST.md")
+	)
+	(lib_symbols)
+	(sheet_instances
+		(path "/"
+			(page "1")
+		)
+	)
+	(embedded_fonts no)
+)
