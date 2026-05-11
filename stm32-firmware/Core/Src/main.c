@@ -62,7 +62,7 @@
  *  1. Create a new STM32F103C8T6 project in STM32CubeIDE
  *  2. Enable: TIM2 (CH3 IC), TIM4 (base), USART1, USART3, SPI1, SPI2,
  *     ADC1 (CH0+CH1)
- *  3. Copy Core/Src/*.c and Core/Inc/*.h to your project
+ *  3. Copy the Core Src and Inc files to your project
  *  4. SD card optional – with FatFS فعال، Drivers/FatFS/README.md را ببینید
  *  5. Insert SIM card into Air780 module, set APN in config.h
  *  6. Build and flash with ST-Link
