@@ -13,17 +13,21 @@
 #define CONFIG_H
 
 /* ─── Device Identity ─────────────────────────────────────────────────── */
-#define SYSTEM_ID       "10001704"        /* 8-char device ID (must match server) */
+/* مقادیر زیر «پیش‌فرض کارخانه» هستند. اگر از طریق کنسول سریال
+ * (USART1 = همان پورت debug، PA9/PA10، 115200 baud) مقداری ذخیره شده باشد،
+ * هنگام boot از flash داخلی بارگذاری و جایگزین این‌ها می‌شود.
+ * در PuTTY تایپ کنید: help  (برای فهرست دستورات)                          */
+#define SYSTEM_ID       "14050218"        /* 8-char device ID (must match server) */
 #define SYSTEM_MODEL    "RATCX1"          /* model string sent in handshake       */
 #define FW_VERSION      "HW:B-06,SW:JA11-STM32" /* firmware version string       */
 
 /* ─── Server Connection ───────────────────────────────────────────────── */
-#define SERVER_IP       {192, 168, 1, 100}  /* TC Manager server IP               */
+#define SERVER_IP       {5, 159, 49, 246}   /* TC Manager server IP (default)      */
 #define SERVER_PORT     2022                /* TCP port                           */
 
 /* ─── Air780 4G LTE settings ─────────────────────────────────────────── */
-/* APN تنظیم اپراتور: برای ایران‌سل "mtnirancell"، ایرانسل "mci"، رایتل "rtl" */
-#define AIR780_APN      "internet"          /* APN name – match your SIM operator */
+/* APN تنظیم اپراتور: ایران‌سل "mtnirancell"، همراه اول "mcinet"، رایتل "RighTel" */
+#define AIR780_APN      "mtnirancell"       /* APN name – match your SIM operator */
 
 /* TCP receive buffer (must match air780_tcp.c RX_DATA_SZ) */
 #define TCP_RX_BUF      512

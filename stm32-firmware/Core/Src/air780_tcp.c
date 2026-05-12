@@ -38,6 +38,7 @@
 
 #include "air780_tcp.h"
 #include "config.h"
+#include "console.h"
 #include "stm32f1xx_hal.h"
 #include <string.h>
 #include <stdio.h>
@@ -316,7 +317,7 @@ registered:;
     /* 6. Set APN */
     {
         char cmd[80];
-        snprintf(cmd, sizeof(cmd), "AT+CGDCONT=1,\"IP\",\"%s\"", AIR780_APN);
+        snprintf(cmd, sizeof(cmd), "AT+CGDCONT=1,\"IP\",\"%s\"", g_cfg.apn);
         at_send(cmd);
         at_wait_for("OK", 3000);
     }

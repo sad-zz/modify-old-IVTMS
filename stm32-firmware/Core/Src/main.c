@@ -81,6 +81,7 @@
 #include "protocol.h"
 #include "air780_tcp.h"
 #include "storage.h"
+#include "console.h"
 
 /* ─── HAL peripheral handles ─────────────────────────────────────────── */
 TIM_HandleTypeDef  htim2;   /* Input Capture @1MHz                        */
@@ -184,7 +185,8 @@ int main(void)
     MX_SPI2_Init();
     MX_ADC1_Init();
 
-    /* ── Load configuration from config.h defaults ────────────────────── */
+    /* ── Load runtime config (flash → fallback config.h defaults) ─────── */
+    config_load();
     load_config();
 
     /* ── Reset interval data ──────────────────────────────────────────── */
@@ -227,6 +229,9 @@ int main(void)
 
     /* ── Initialise cal timers ────────────────────────────────────────── */
     memset(cal_timer, 0, sizeof(cal_timer));
+
+    /* ── Serial console on the debug UART (PuTTY: type 'help') ────────── */
+    console_init();
 
     /* ═══════════════════════════════════════════════════════════════════ */
     /*                         MAIN LOOP                                   */
@@ -288,6 +293,9 @@ int main(void)
 
         /* ── Air780 background task (drain UART RX, process URCs) ───── */
         air780_task();
+
+        /* ── Serial console (PuTTY config / monitoring) ──────────────── */
+        console_task();
     }
 }
 

@@ -49,6 +49,7 @@ C_SOURCES = \
   Core/Src/storage.c \
   Core/Src/w25q80.c \
   Core/Src/sd_spi.c \
+  Core/Src/console.c \
   Drivers/CMSIS/Device/ST/STM32F1xx/Source/Templates/system_stm32f1xx.c
 
 # HAL driver sources (all of them; --gc-sections drops the unused ones)

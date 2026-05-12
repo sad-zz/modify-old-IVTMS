@@ -21,6 +21,7 @@
 #include "interval.h"
 #include "storage.h"
 #include "config.h"
+#include "console.h"
 
 #include "stm32f1xx_hal.h"
 #include <string.h>
@@ -36,7 +37,6 @@ typedef enum {
 
 static ProtoState_t state = PROTO_DISCONNECTED;
 
-static uint8_t server_ip[]  = SERVER_IP;
 static uint8_t rx_buf[TCP_RX_BUF];
 
 /* ─── Helpers ────────────────────────────────────────────────────────── */
@@ -76,7 +76,7 @@ static void send_handshake(void)
     int  len;
     update_datetimesec();
     len = snprintf(buf, sizeof(buf), "8000%s%s%s%sREADY",
-                   datetimesec, SYSTEM_ID, SYSTEM_MODEL, FW_VERSION);
+                   datetimesec, g_cfg.system_id, SYSTEM_MODEL, FW_VERSION);
     tcp_send((uint8_t *)buf, (uint16_t)len);
 }
 
@@ -86,7 +86,7 @@ static void send_time_ack(void)
     char buf[64];
     int  len;
     update_datetimesec();
-    len = snprintf(buf, sizeof(buf), "8012%s%s", datetimesec, SYSTEM_ID);
+    len = snprintf(buf, sizeof(buf), "8012%s%s", datetimesec, g_cfg.system_id);
     tcp_send((uint8_t *)buf, (uint16_t)len);
 }
 
@@ -222,7 +222,7 @@ void protocol_task(void)
     {
     /* ─────────────────────────────────────────── DISCONNECTED ───────── */
     case PROTO_DISCONNECTED:
-        if (tcp_connect(server_ip, SERVER_PORT) == 0) {
+        if (tcp_connect(g_cfg.server_ip, g_cfg.server_port) == 0) {
             state = PROTO_CONNECTING;
         } else {
             HAL_Delay(5000);   /* wait 5 s before retry */
