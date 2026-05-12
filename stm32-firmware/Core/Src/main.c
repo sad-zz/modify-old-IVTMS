@@ -217,11 +217,20 @@ int main(void)
 
     /* ── Initialise Air780 4G LTE module ─────────────────────────────────── */
     debug_print("Air780 init...\r\n");
-    if (air780_init() != 0) {
-        set_error(VMN_ERR);   /* reuse error bit for modem fail */
-        debug_print("Air780 init failed\r\n");
-    } else {
-        debug_print("Air780 ready\r\n");
+    {
+        int rc = air780_init();
+        if (rc != 0) {
+            set_error(VMN_ERR);   /* reuse error bit for modem fail */
+            const char *why = (rc == -1) ? "no AT response - check 3.8V power / EN pin / TXD-RXD crossover" :
+                              (rc == -2) ? "SIM not detected - check SIM card seated & active" :
+                              (rc == -3) ? "no network registration - check antenna / signal / APN" : "?";
+            char b[96];
+            snprintf(b, sizeof(b), "Air780 init failed (rc=%d: %s)\r\n", rc, why);
+            debug_print(b);
+            debug_print("(console still works - type 'modem' to diagnose, 'at AT' to test)\r\n");
+        } else {
+            debug_print("Air780 ready\r\n");
+        }
     }
 
     /* ── Initialise protocol layer ────────────────────────────────────── */

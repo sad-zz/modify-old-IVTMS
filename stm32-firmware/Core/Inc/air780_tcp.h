@@ -87,6 +87,16 @@ uint8_t tcp_is_connected(void);
  */
 void air780_task(void);
 
+/**
+ * @brief Send a raw AT command and capture the response (for the serial console).
+ * @param cmd        AT command WITHOUT trailing CRLF (e.g. "AT+CSQ")
+ * @param resp       buffer to receive the response text (CRLF-separated lines)
+ * @param resp_sz    size of resp
+ * @param timeout_ms how long to wait for "OK"/"ERROR"
+ * @return 0 if "OK", 1 if "ERROR"/"+CME ERROR"/..., -1 on timeout
+ */
+int air780_at_raw(const char *cmd, char *resp, int resp_sz, uint32_t timeout_ms);
+
 /* ─── Internal UART3 ISR – call from USART3_IRQHandler ─────────────── */
 void air780_uart_irq(void);
 

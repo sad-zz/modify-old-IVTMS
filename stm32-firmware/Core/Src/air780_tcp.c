@@ -260,6 +260,46 @@ static void air780_power_on(void)
     HAL_Delay(2000);   /* allow module to finish boot */
 }
 
+/* ─── air780_at_raw ──────────────────────────────────────────────────── */
+/* Send a raw AT command, collect response lines into `resp` (NUL-terminated,
+ * CRLF-separated). Returns 0 if "OK" seen, 1 if "ERROR" seen, -1 on timeout. */
+int air780_at_raw(const char *cmd, char *resp, int resp_sz, uint32_t timeout_ms)
+{
+    if (resp && resp_sz > 0) resp[0] = '\0';
+    int rlen = 0;
+    ring_tail = ring_head;          /* flush stale RX */
+    at_send(cmd);
+
+    char line[LINE_SZ];
+    int  ll = 0;
+    int  result = -1;
+    uint32_t start = HAL_GetTick();
+    while ((HAL_GetTick() - start) < timeout_ms) {
+        while (ring_count() > 0) {
+            uint8_t b = ring_get();
+            if (b == '\n') {
+                if (ll > 0) {
+                    line[ll] = '\0';
+                    if (resp) {
+                        for (int i = 0; i < ll && rlen < resp_sz - 3; i++) resp[rlen++] = line[i];
+                        if (rlen < resp_sz - 3) { resp[rlen++] = '\r'; resp[rlen++] = '\n'; }
+                        resp[rlen] = '\0';
+                    }
+                    if (strcmp(line, "OK") == 0) { result = 0; goto done; }
+                    if (strncmp(line, "ERROR", 5) == 0 ||
+                        strstr(line, "+CME ERROR") || strstr(line, "+CMS ERROR")) { result = 1; goto done; }
+                    ll = 0;
+                }
+            } else if (b != '\r') {
+                if (ll < LINE_SZ - 1) line[ll++] = (char)b;
+            }
+        }
+        HAL_Delay(2);
+    }
+done:
+    return result;
+}
+
 /* ─── air780_init ────────────────────────────────────────────────────── */
 int air780_init(void)
 {

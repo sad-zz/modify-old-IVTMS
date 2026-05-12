@@ -180,6 +180,8 @@ static void cmd_help(void)
       "  show              show stored config\r\n"
       "  status            live status (modem, loops, battery, errors)\r\n"
       "  loops             live loop frequency / calibration values\r\n"
+      "  modem             run modem diagnostics (AT, SIM, signal, registration)\r\n"
+      "  at <AT-command>   send a raw AT command to the modem, show reply\r\n"
       "  set ip A.B.C.D    set server IP\r\n"
       "  set port N        set TCP port\r\n"
       "  set apn STR       set SIM APN\r\n"
@@ -187,6 +189,32 @@ static void cmd_help(void)
       "  save              write config to flash (persists across reboot)\r\n"
       "  default           reset config to firmware defaults (RAM; use save)\r\n"
       "  reboot            software reset\r\n");
+}
+
+static void modem_query(const char *cmd)
+{
+    static char resp[256];
+    cputs(cmd); cputs(" ->\r\n");
+    int r = air780_at_raw(cmd, resp, sizeof(resp), 5000);
+    if (resp[0]) cputs(resp);
+    if (r < 0)   cputs("  <no response - timeout>\r\n");
+    cnl();
+}
+
+static void cmd_modem(void)
+{
+    cputs("--- modem diagnostics ---\r\n");
+    modem_query("AT");
+    modem_query("ATI");
+    modem_query("AT+CPIN?");
+    modem_query("AT+CIMI");
+    modem_query("AT+CSQ");
+    modem_query("AT+CEREG?");
+    modem_query("AT+COPS?");
+    modem_query("AT+CGDCONT?");
+    cputs("-------------------------\r\n");
+    cputs("note: if 'AT' shows no response -> power(3.8-4.2V/2A), EN pin, TXD<->RXD crossover.\r\n");
+    cputs("      if 'AT' OK but CSQ low / CEREG not ,1 or ,5 -> antenna, signal, SIM, APN.\r\n");
 }
 
 /* parse "A.B.C.D" → ip[4]; returns 0 on success */
@@ -203,6 +231,22 @@ static void to_lower(char *s) { for (; *s; s++) if (*s>='A'&&*s<='Z') *s += 32; 
 
 static void exec_line(char *line)
 {
+    /* skip leading whitespace */
+    while (*line == ' ' || *line == '\t') line++;
+
+    /* "at <cmd>" → raw AT command passthrough to the modem */
+    if ((line[0] == 'a' || line[0] == 'A') && (line[1] == 't' || line[1] == 'T') &&
+        (line[2] == ' ' || line[2] == '\t')) {
+        const char *cmd = line + 3;
+        while (*cmd == ' ' || *cmd == '\t') cmd++;
+        if (!*cmd) { cputs("usage: at <AT-command>   e.g.  at AT+CSQ\r\n"); return; }
+        static char resp[256];
+        int r = air780_at_raw(cmd, resp, sizeof(resp), 5000);
+        if (resp[0]) cputs(resp);
+        cputs(r == 0 ? "[OK]\r\n" : r == 1 ? "[ERROR]\r\n" : "[timeout - no response from modem]\r\n");
+        return;
+    }
+
     /* split into argv (max 4 tokens) */
     char *argv[4]; int argc = 0;
     char *p = line;
@@ -223,6 +267,7 @@ static void exec_line(char *line)
     if (!strcmp(cmd, "show"))                            { cmd_show();   return; }
     if (!strcmp(cmd, "status") || !strcmp(cmd, "stat"))  { cmd_status(); return; }
     if (!strcmp(cmd, "loops") || !strcmp(cmd, "loop"))   { cmd_loops();  return; }
+    if (!strcmp(cmd, "modem") || !strcmp(cmd, "mdm"))    { cmd_modem();  return; }
     if (!strcmp(cmd, "reboot") || !strcmp(cmd, "reset")) {
         cputs("rebooting...\r\n"); HAL_Delay(100); NVIC_SystemReset();
     }
