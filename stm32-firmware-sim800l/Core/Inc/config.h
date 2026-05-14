@@ -16,17 +16,17 @@
 #define CONFIG_H
 
 /* ─── Device Identity ─────────────────────────────────────────────────── */
-#define SYSTEM_ID       "10001704"
+#define SYSTEM_ID       "14050218"
 #define SYSTEM_MODEL    "RATCX1"
 #define FW_VERSION      "HW:B-06,SW:JA11-STM32-SIM800L"
 
 /* ─── Server Connection ───────────────────────────────────────────────── */
-#define SERVER_IP       {192, 168, 1, 100}
+#define SERVER_IP       {5, 159, 49, 246}
 #define SERVER_PORT     2022
 
 /* ─── SIM800L GPRS settings ───────────────────────────────────────────── */
 /* APN اپراتور: ایران‌سل "mcinet"، همراه اول "mci"، رایتل "rtl"           */
-#define SIM800L_APN     "mcinet"
+#define SIM800L_APN     "mtnirancell"
 
 /* بافر دریافت TCP */
 #define TCP_RX_BUF      512
