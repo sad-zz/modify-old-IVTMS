@@ -164,36 +164,65 @@ int main(void)
     load_config();
     reset_interval_data();
     reset_interval();
-    loop_detector_init();
 
     debug_print("RATCX1-STM32-SIM800L started\r\n");
+    debug_print("1: config loaded\r\n");
 
-    debug_print("Calibrating loops...\r\n");
-    HAL_Delay(500);
-    loop_calibrate();
-    debug_print("Calibration done\r\n");
+    /* راه‌اندازی loop detector – باید بعد از debug_print اولیه باشد */
+    loop_detector_init();
+    debug_print("2: loop detector init\r\n");
 
+    /* کالیبراسیون با timeout – اگر سخت‌افزار loop وصل نباشد، بعد از 3 ثانیه رد می‌شود */
+    debug_print("3: calibrating loops (3s timeout)...\r\n");
+    {
+        uint32_t cal_start = HAL_GetTick();
+        uint8_t k;
+        docal = 1;
+        for (uint32_t ci = 0; ci < 4; ci++) {
+            caldata[ci] = 0; calsum[ci] = 0; calpointer[ci] = 0;
+        }
+        for (k = 0; k < 10; k++) {
+            forth = 0;
+            uint32_t t = HAL_GetTick();
+            while (forth < 4 && (HAL_GetTick() - t) < 300);  /* 300ms timeout per step */
+            for (uint32_t ci = 0; ci < 4; ci++) {
+                calsum[ci]    += freq_mean[ci];
+                calpointer[ci]++;
+            }
+            HAL_Delay(50);
+            if ((HAL_GetTick() - cal_start) > 3000) break;   /* 3s total timeout */
+        }
+        for (uint32_t ci = 0; ci < 4; ci++) {
+            if (calpointer[ci] > 0)
+                caldata[ci] = calsum[ci] / calpointer[ci];
+        }
+        docal = 0;
+    }
+    debug_print("4: calibration done\r\n");
+
+    debug_print("5: storage init...\r\n");
     {
         uint8_t be = storage_init();
         if (be == STORAGE_BE_NONE)
-            debug_print("Storage: no backend\r\n");
+            debug_print("   Storage: no backend\r\n");
         else {
-            if (be & STORAGE_BE_W25Q80) debug_print("Storage: W25Q80 ready\r\n");
-            if (be & STORAGE_BE_SDCARD) debug_print("Storage: SD card ready\r\n");
+            if (be & STORAGE_BE_W25Q80) debug_print("   Storage: W25Q80 ready\r\n");
+            if (be & STORAGE_BE_SDCARD) debug_print("   Storage: SD card ready\r\n");
         }
     }
 
-    /* ── SIM800L init (به‌جای air780_init) ───────────────────────────── */
-    debug_print("SIM800L init...\r\n");
+    debug_print("6: SIM800L init (max 90s)...\r\n");
     if (sim800l_init() != 0) {
         set_error(VMN_ERR);
-        debug_print("SIM800L init failed\r\n");
+        debug_print("   SIM800L init FAILED – continuing anyway\r\n");
     } else {
-        debug_print("SIM800L ready\r\n");
+        debug_print("   SIM800L ready\r\n");
     }
 
+    debug_print("7: protocol init\r\n");
     protocol_init();
     memset(cal_timer, 0, sizeof(cal_timer));
+    debug_print("8: main loop started\r\n");
 
     while (1)
     {
