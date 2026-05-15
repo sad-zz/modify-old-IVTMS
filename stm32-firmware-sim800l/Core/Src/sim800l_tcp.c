@@ -221,26 +221,43 @@ static int at_wait_for(const char *expect, uint32_t timeout_ms)
 }
 
 /* ─── Power on ───────────────────────────────────────────────────────── */
+/*
+ * نکته سخت‌افزاری مهم:
+ * SIM800L جریان peak تا 2A دارد. اگر از یک منبع مشترک با STM32 استفاده
+ * شود، ولتاژ افت می‌کند و STM32 brownout reset می‌شود. حتماً یک
+ * خازن 470µF تا 1000µF روی پایه VCC ماژول SIM800L نصب کنید.
+ *
+ * جریان init:
+ *  1. صبر 500ms تا ولتاژ پس از reset تثبیت شود
+ *  2. چک STATUS → اگر HIGH، ماژول قبلاً روشن است
+ *  3. پالس LOW فقط یک‌بار؛ اگر بعد از 20 ثانیه STATUS هنوز LOW است،
+ *     ادامه می‌دهیم و در AT handshake timeout می‌کنیم
+ */
 static void sim800l_power_on(void)
 {
-    /* SIM800L: PWRKEY باید LOW نگه داشته شود برای ≥1 ثانیه برای روشن شدن */
+    /* صبر تا منبع تغذیه پس از reset تثبیت شود */
+    HAL_Delay(500);
 
     /* اگر STATUS بالاست، ماژول قبلاً روشن است */
     if (HAL_GPIO_ReadPin(STATUS_PORT, STATUS_PIN) == GPIO_PIN_SET)
         return;
 
-    /* پالس LOW روی PWRKEY به مدت 1.2 ثانیه */
-    HAL_GPIO_WritePin(PWRKEY_PORT, PWRKEY_PIN, GPIO_PIN_RESET);  /* LOW */
+    /* پالس LOW روی PWRKEY حداقل 1 ثانیه – فقط یک‌بار تلاش می‌کنیم */
+    HAL_GPIO_WritePin(PWRKEY_PORT, PWRKEY_PIN, GPIO_PIN_RESET);
     HAL_Delay(1200);
-    HAL_GPIO_WritePin(PWRKEY_PORT, PWRKEY_PIN, GPIO_PIN_SET);    /* HIGH */
+    HAL_GPIO_WritePin(PWRKEY_PORT, PWRKEY_PIN, GPIO_PIN_SET);
 
-    /* انتظار برای STATUS یا "Call Ready" – حداکثر 15 ثانیه */
+    /* انتظار برای STATUS – حداکثر 20 ثانیه
+     * اگر منبع تغذیه ضعیف باشد و STATUS بالا نیاید، ادامه می‌دهیم
+     * تا AT handshake تصمیم بگیرد */
     uint32_t start = HAL_GetTick();
     while (HAL_GPIO_ReadPin(STATUS_PORT, STATUS_PIN) == GPIO_PIN_RESET) {
-        if ((HAL_GetTick() - start) > 15000) break;
-        HAL_Delay(100);
+        if ((HAL_GetTick() - start) > 20000) break;
+        HAL_Delay(200);
     }
-    HAL_Delay(3000);   /* زمان boot کامل */
+
+    /* زمان boot کامل ماژول */
+    HAL_Delay(2000);
 }
 
 /* ─── sim800l_init ───────────────────────────────────────────────────── */
@@ -278,31 +295,35 @@ int sim800l_init(void)
 
     /* 5. انتظار برای ثبت شبکه GSM (+CREG: 0,1 یا 0,5) */
     {
-        char resp[64];
+        uint8_t net_ok = 0;
         uint32_t start = HAL_GetTick();
         while ((HAL_GetTick() - start) < 60000) {
-            at_send("AT+CREG?");
+            char resp[80];
             uint8_t rlen = 0;
+            at_send("AT+CREG?");
             uint32_t t2 = HAL_GetTick();
-            while ((HAL_GetTick() - t2) < 2000 && rlen < 63) {
-                while (ring_count() > 0) {
+            while ((HAL_GetTick() - t2) < 2000) {
+                while (ring_count() > 0 && rlen < (uint8_t)(sizeof(resp) - 1)) {
                     uint8_t b = ring_get();
                     if (b == '\n') {
                         resp[rlen] = '\0';
                         if (strstr(resp, "+CREG:") &&
-                            (strstr(resp, ",1") || strstr(resp, ",5")))
-                            goto registered;
+                            (strstr(resp, ",1") || strstr(resp, ",5"))) {
+                            net_ok = 1;
+                        }
                         rlen = 0;
                     } else if (b != '\r') {
-                        resp[rlen++] = (char)b;
+                        resp[rlen++] = b;
                     }
                 }
+                if (net_ok) break;
+                HAL_Delay(10);
             }
+            if (net_ok) break;
             HAL_Delay(2000);
         }
-        return -3;   /* timeout ثبت شبکه */
+        if (!net_ok) return -3;
     }
-registered:;
 
     /* 6. تنظیم APN و فعال‌سازی bearer */
     {

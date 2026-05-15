@@ -152,10 +152,33 @@ int main(void)
     HAL_Init();
     SystemClock_Config();
 
+    /* GPIO را اول init کن تا LED فوری در دسترس باشد */
     MX_GPIO_Init();
+
+    /* سه چشمک سریع → نشان می‌دهد GPIO و کلاک درست کار می‌کنند */
+    for (int i = 0; i < 3; i++) {
+        HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_RESET); /* ON  */
+        HAL_Delay(120);
+        HAL_GPIO_WritePin(GPIOC, GPIO_PIN_13, GPIO_PIN_SET);   /* OFF */
+        HAL_Delay(120);
+    }
+
+    MX_USART1_UART_Init();   /* ← UART را فوری init کن */
+
+    /* اولین پیام سریال – قبل از هر init دیگری */
+    {
+        uint32_t mhz = HAL_RCC_GetSysClockFreq() / 1000000UL;
+        char mhz_str[8];
+        mhz_str[0] = '0' + (char)((mhz / 10) % 10);
+        mhz_str[1] = '0' + (char)(mhz % 10);
+        mhz_str[2] = 'M'; mhz_str[3] = 'H'; mhz_str[4] = 'z';
+        mhz_str[5] = '\r'; mhz_str[6] = '\n'; mhz_str[7] = '\0';
+        debug_print("RATCX1-STM32-SIM800L boot @ ");
+        debug_print(mhz_str);
+    }
+
     MX_TIM2_Init();
     MX_TIM4_Init();
-    MX_USART1_UART_Init();
     MX_USART3_UART_Init();
     MX_SPI1_Init();
     MX_SPI2_Init();
@@ -164,12 +187,9 @@ int main(void)
     load_config();
     reset_interval_data();
     reset_interval();
-    loop_detector_init();
-
-    debug_print("RATCX1-STM32-SIM800L started\r\n");
+    loop_detector_init();   /* TIM4 و TIM2 را شروع می‌کند */
 
     debug_print("Calibrating loops...\r\n");
-    HAL_Delay(500);
     loop_calibrate();
     debug_print("Calibration done\r\n");
 
@@ -183,11 +203,11 @@ int main(void)
         }
     }
 
-    /* ── SIM800L init (به‌جای air780_init) ───────────────────────────── */
+    /* ── SIM800L init ────────────────────────────────────────────────── */
     debug_print("SIM800L init...\r\n");
     if (sim800l_init() != 0) {
         set_error(VMN_ERR);
-        debug_print("SIM800L init failed\r\n");
+        debug_print("SIM800L init failed – continuing offline\r\n");
     } else {
         debug_print("SIM800L ready\r\n");
     }
@@ -292,20 +312,37 @@ static void SystemClock_Config(void)
 {
     RCC_OscInitTypeDef RCC_OscInitStruct = {0};
     RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+
+    /* اول HSE (کریستال 8MHz) + PLL × 9 = 72MHz را امتحان می‌کنیم */
     RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSE;
     RCC_OscInitStruct.HSEState       = RCC_HSE_ON;
     RCC_OscInitStruct.HSEPredivValue = RCC_HSE_PREDIV_DIV1;
     RCC_OscInitStruct.PLL.PLLState   = RCC_PLL_ON;
     RCC_OscInitStruct.PLL.PLLSource  = RCC_PLLSOURCE_HSE;
     RCC_OscInitStruct.PLL.PLLMUL     = RCC_PLL_MUL9;
-    HAL_RCC_OscConfig(&RCC_OscInitStruct);
+
+    if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
+        /* HSE کریستال وجود ندارد یا کار نمی‌کند – از HSI داخلی استفاده می‌کنیم
+         * HSI(8MHz)/2 × PLL×16 = 64MHz  (به‌جای 72MHz)
+         * تایمرها در MX_TIM*_Init بر اساس HAL_RCC_GetPCLK*Freq محاسبه می‌شوند */
+        RCC_OscInitStruct.OscillatorType      = RCC_OSCILLATORTYPE_HSI;
+        RCC_OscInitStruct.HSIState            = RCC_HSI_ON;
+        RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+        RCC_OscInitStruct.PLL.PLLState        = RCC_PLL_ON;
+        RCC_OscInitStruct.PLL.PLLSource       = RCC_PLLSOURCE_HSI_DIV2;
+        RCC_OscInitStruct.PLL.PLLMUL          = RCC_PLL_MUL16;
+        if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+            Error_Handler();
+    }
+
     RCC_ClkInitStruct.ClockType      = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK |
                                        RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
     RCC_ClkInitStruct.SYSCLKSource   = RCC_SYSCLKSOURCE_PLLCLK;
     RCC_ClkInitStruct.AHBCLKDivider  = RCC_SYSCLK_DIV1;
     RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV2;
     RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
-    HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2);
+    if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_2) != HAL_OK)
+        Error_Handler();
 }
 
 static void MX_GPIO_Init(void)
@@ -344,12 +381,30 @@ static void MX_GPIO_Init(void)
     HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 }
 
+/* PSC را بر اساس کلاک واقعی APB1/APB2 محاسبه می‌کند تا 1MHz تایمر بدهد */
+static uint32_t tim_apb1_psc(void)
+{
+    uint32_t pclk1 = HAL_RCC_GetPCLK1Freq();
+    /* اگر APB1 prescaler != 1، کلاک تایمر = 2 × PCLK1 */
+    if ((RCC->CFGR & RCC_CFGR_PPRE1) != 0)
+        pclk1 *= 2;
+    return (pclk1 / 1000000UL) - 1;   /* برای دوره 1µs */
+}
+
+static uint32_t tim_apb2_psc(void)
+{
+    uint32_t pclk2 = HAL_RCC_GetPCLK2Freq();
+    if ((RCC->CFGR & RCC_CFGR_PPRE2) != 0)
+        pclk2 *= 2;
+    return (pclk2 / 1000000UL) - 1;
+}
+
 static void MX_TIM2_Init(void)
 {
     TIM_IC_InitTypeDef sConfigIC = {0};
     __HAL_RCC_TIM2_CLK_ENABLE();
     htim2.Instance               = TIM2;
-    htim2.Init.Prescaler         = TIM2_PSC;
+    htim2.Init.Prescaler         = tim_apb2_psc();   /* 71@72MHz یا 63@64MHz */
     htim2.Init.CounterMode       = TIM_COUNTERMODE_UP;
     htim2.Init.Period             = 0xFFFFFFFF;
     htim2.Init.ClockDivision     = TIM_CLOCKDIVISION_DIV1;
@@ -373,9 +428,9 @@ static void MX_TIM4_Init(void)
 {
     __HAL_RCC_TIM4_CLK_ENABLE();
     htim4.Instance               = TIM4;
-    htim4.Init.Prescaler         = TIM4_PSC;
+    htim4.Init.Prescaler         = tim_apb1_psc();   /* 71@72MHz یا 63@64MHz */
     htim4.Init.CounterMode       = TIM_COUNTERMODE_UP;
-    htim4.Init.Period             = TIM4_ARR;
+    htim4.Init.Period             = TIM4_ARR;         /* 999 → 1ms tick */
     htim4.Init.ClockDivision     = TIM_CLOCKDIVISION_DIV1;
     htim4.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_ENABLE;
     HAL_TIM_Base_Init(&htim4);
