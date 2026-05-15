@@ -1,0 +1,21 @@
+Reference,Value,Footprint,Manufacturer,MPN,Qty,Notes
+J1,Power Jack DC 5.5/2.1,Connector_BarrelJack:BarrelJack_Horizontal,CUI,PJ-002A,1,12V input
+F1,1A Polyfuse,Fuse:Fuse_Bourns_MF-RX_TH,Bourns,MF-MSMF010-2,1,Resettable
+D1,SS24,Diode_SMD:D_SMA,Onsemi,SS24,1,Reverse polarity
+TVS1,SMAJ24CA,Diode_SMD:D_SMA,Littelfuse,SMAJ24CA,1,Bidirectional clamp
+L1,Ferrite Bead 600R/2A,Inductor_SMD:L_1210_3225Metric,TDK,MPZ2012S601A,1,Input filter
+C1,470uF/25V,Capacitor_THT:CP_Radial_D10.0mm_P5.00mm,Nichicon,UVZ1E471MPD,1,Bulk input
+C2,100uF/16V,Capacitor_SMD:CP_Elec_6.3x5.4,Panasonic,EEEFK1C101P,1,Pre-reg
+U1,LM2596S-5.0,Package_TO_SOT_SMD:TO-263-5_TabPin3,TI,LM2596S-5.0/NOPB,1,5V switcher
+L2,33uH/3A,Inductor_SMD:L_Bourns_SRR1280,Bourns,SRR1280-330M,1,Output coil
+D2,SS34,Diode_SMD:D_SMA,Onsemi,SS34,1,Freewheel
+C3,220uF/10V,Capacitor_SMD:CP_Elec_8x5.4,Panasonic,EEEFK1A221P,1,Output bulk
+C4,10uF/16V X7R,Capacitor_SMD:C_0805_2012Metric,Murata,GRM21BR71C106KE15L,1,HF decouple
+R1,1K 1%,Resistor_SMD:R_0805_2012Metric,Yageo,RC0805FR-071KL,1,LED1 series
+R2,1K 1%,Resistor_SMD:R_0805_2012Metric,Yageo,RC0805FR-071KL,1,LED2 series
+LED1,Green 0805,LED_SMD:LED_0805_2012Metric,Wurth,150080GS75000,1,Power-on
+LED2,Red 0805,LED_SMD:LED_0805_2012Metric,Wurth,150080RS75000,1,Status from MCU
+TP1,Test point,TestPoint:TestPoint_Pad_D2.0mm,Keystone,5015,1,+12V
+TP2,Test point,TestPoint:TestPoint_Pad_D2.0mm,Keystone,5015,1,+5V
+TP3,Test point,TestPoint:TestPoint_Pad_D2.0mm,Keystone,5015,1,GND
+J_BUS,Conn 2x8 IDC,Connector_PinHeader_2.54mm:PinHeader_2x08_P2.54mm_Vertical,Wurth,61201621621,1,Backplane bus
